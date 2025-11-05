@@ -1,0 +1,15 @@
+[package]
+name = "enval"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+description = "Environment variable abstraction layer"
+
+[dependencies]
+thiserror = { workspace = true }
+
+[features]
+default = []
+# Enable integration with the standard library.
+std = []

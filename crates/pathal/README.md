@@ -1,0 +1,3 @@
+# `pathal`
+
+Path abstraction layer.

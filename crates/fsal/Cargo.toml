@@ -1,0 +1,14 @@
+[package]
+name = "fsal"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+description = "File System abstraction layer"
+
+[dependencies]
+
+[features]
+default = []
+# Enable integration with the standard library.
+std = []

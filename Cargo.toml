@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/*",
+]
+
+[workspace.package]
+edition = "2024"
+repository = "https://github.com/demurgos/sysal"
+license = "MIT"
+version = "0.1.0"
+
+[workspace.lints.clippy]
+exhaustive_enums = { level = "deny" }
+exhaustive_structs = { level = "deny" }
+
+[workspace.dependencies]
+thiserror = { version = "2.0.17", default-features = false }

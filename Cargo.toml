@@ -15,4 +15,13 @@ exhaustive_enums = { level = "deny" }
 exhaustive_structs = { level = "deny" }
 
 [workspace.dependencies]
+chrono = { version = "0.4.42", default-features = false }
+display_full_error = { version = "1.1.0", default-features = false }
+flate2 = { version = "1.1.5", default-features = false }
+itertools = { version = "0.14.0", default-features = false }
+lzma-rs = { version = "0.3.0", default-features = false }
+regex = { version = "1.12.2", default-features = false }
+serde = { version = "1.0.228", default-features = false }
+tar = { version = "0.4.44", default-features = false }
 thiserror = { version = "2.0.17", default-features = false }
+tokio = { version = "1.48.0", default-features = false }

@@ -7,6 +7,16 @@ license = { workspace = true }
 description = "File System abstraction layer"
 
 [dependencies]
+chrono = { workspace = true }
+display_full_error = { workspace = true, features = ["alloc"] }
+flate2 = { workspace = true, features = ["rust_backend"] }
+itertools = { workspace = true }
+lzma-rs = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, features = ["derive", "std"] }
+tar = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "fs", "rt"] }
 
 [features]
 default = []

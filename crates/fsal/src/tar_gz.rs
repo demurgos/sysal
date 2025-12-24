@@ -63,7 +63,7 @@ impl ReadFsx<[String]> for TarGz {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
   use crate::{FileType, SubTree};
   use super::*;
 

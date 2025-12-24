@@ -64,3 +64,98 @@ impl ReadFsx<[String]> for TarXz {
     self.tar.read_dir(path).await
   }
 }
+
+// #[cfg(test)]
+// mod tests {
+//   use std::collections::BTreeSet;
+//   use itertools::Itertools;
+//   use crate::{FileType, FsxDirEntry, SubTree};
+//   use super::*;
+//
+//   async fn list_files<T: ReadFsx<[String]>>(tree: &T) -> Vec<String> {
+//     let mut stack: Vec<T::DirEntry> = tree.read_dir([String::from("/")]).await.unwrap();
+//     let mut paths: BTreeSet<String> = BTreeSet::new();
+//
+//     while let Some(entry) = stack.pop() {
+//       let path: &[String] = entry.path().as_ref();
+//       let is_fresh = paths.insert(path.join("/"));
+//       if !is_fresh {
+//         continue;
+//       }
+//     }
+//
+//     Vec::from_iter(paths.into_iter())
+//   }
+//
+//   #[tokio::test]
+//   async fn read_tgz() {
+//     // archive created with `tar -czvf archive.tar.gz archive`
+//     let bytes = include_bytes!("../../../llvm-20.1.8.src.tar.xz");
+//     let tree = TarXz::new(bytes).unwrap();
+//     {
+//       let actual = tree.read(["foo.txt".to_string()]).await.unwrap();
+//       let expected = b"Hello, World!\n".to_vec();
+//       assert_eq!(actual, expected);
+//     }
+//     {
+//       let actual = tree.read_link(["foolink.txt".to_string()]).await.unwrap();
+//       let expected = vec![".".to_string(), "foo.txt".to_string()];
+//       assert_eq!(actual, expected);
+//     }
+//     {
+//       let actual = tree.read(["bar".to_string(), "baz.txt".to_string()]).await.unwrap();
+//       let expected = b"bar/baz\n".to_vec();
+//       assert_eq!(actual, expected);
+//     }
+//     {
+//       let actual = tree.read_dir([]).await.unwrap();
+//       let expected = vec![
+//         SimpleDirEntry {
+//           path: vec!["foo.txt".to_string()],
+//           file_type: FileType::File,
+//         },
+//         SimpleDirEntry {
+//           path: vec!["foolink.txt".to_string()],
+//           file_type: FileType::Symlink,
+//         },
+//         SimpleDirEntry {
+//           path: vec!["bar".to_string()],
+//           file_type: FileType::Dir,
+//         },
+//         SimpleDirEntry {
+//           path: vec!["empty".to_string()],
+//           file_type: FileType::Dir,
+//         },
+//       ];
+//       assert_eq!(actual, expected);
+//     }
+//     {
+//       let actual = tree.read_dir(["bar".to_string()]).await.unwrap();
+//       let expected = vec![
+//         SimpleDirEntry {
+//           path: vec!["bar".to_string(), "baz.txt".to_string()],
+//           file_type: FileType::File,
+//         },
+//         SimpleDirEntry {
+//           path: vec!["bar".to_string(), "empty.txt".to_string()],
+//           file_type: FileType::File,
+//         },
+//       ];
+//       assert_eq!(actual, expected);
+//     }
+//     {
+//       let actual = tree.read_dir(["empty".to_string()]).await.unwrap();
+//       let expected = vec![];
+//       assert_eq!(actual, expected);
+//     }
+//     let sub_tree = SubTree {
+//       tree,
+//       prefix: vec!["bar".to_string()],
+//     };
+//     {
+//       let actual = sub_tree.read(["baz.txt".to_string()]).await.unwrap();
+//       let expected = b"bar/baz\n".to_vec();
+//       assert_eq!(actual, expected);
+//     }
+//   }
+// }

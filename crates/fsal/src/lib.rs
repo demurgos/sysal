@@ -5,8 +5,8 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 
 pub mod tar;
-pub mod tar_gz;
-pub mod tar_xz;
+// pub mod tar_gz;
+// pub mod tar_xz;
 
 pub enum ChildrenError {
   NotFound,

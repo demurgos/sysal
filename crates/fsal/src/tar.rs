@@ -3,14 +3,24 @@ use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::io::{Cursor, Read};
 use std::path::Component;
+use std::sync::Mutex;
 use ::tar::EntryType;
+use tar::Archive;
 use crate::{ComponentError, FileType, FsxFile, PathExt, ReadDirError, ReadError, ReadFsx, ReadLinkError, SimpleDirEntry};
 
 /// File System stored in a _tar_ archive.
-#[derive(Clone, PartialEq, Eq)]
 pub struct Tar {
   /// Tar content (decompression occurs in the constructor)
-  archive: Cursor<Vec<u8>>,
+  archive: Archive<Cursor<Vec<u8>>>,
+  /// The `Tar` tree auto-detects if there's a singe directory at the root
+  pub(crate) root_dir: Option<String>,
+}
+
+/// File System stored in a _tar_ archive.
+// #[derive(Clone, PartialEq, Eq)]
+pub struct TarFs<'a> {
+  /// Tar content (decompression occurs in the constructor)
+  entries: std::sync::Mutex<Vec<::tar::Entry<'a, Cursor<Vec<u8>>>>>,
   /// The `Tar` tree auto-detects if there's a singe directory at the root
   pub(crate) root_dir: Option<String>,
 }
@@ -73,24 +83,33 @@ impl Tar {
       root_dir = None;
     }
 
-    Ok(Self { archive: tar, root_dir })
+    let mut archive = tar::Archive::new(tar.clone());
+
+    Ok(Self { archive, root_dir })
+  }
+
+  pub fn new_fs<'a>(&'a self) -> TarFs<'a> {
+
+    let entries = self.archive
+      .entries_with_seek()
+      .map_err(|e| ReadError::Other(e.to_string())).unwrap();
+
+    let entries = Vec::from_iter(entries.map(|e| e.map_err(|e| ReadError::Other(e.to_string())).unwrap()));
+
+    TarFs { entries: Mutex::new(entries), root_dir: self.root_dir.clone() }
   }
 }
 
-impl ReadFsx<[String]> for Tar {
+impl ReadFsx<[String]> for TarFs<'_> {
   type PathBuf = Vec<String>;
   type DirEntry = SimpleDirEntry<Self::PathBuf>;
 
   async fn read<P: AsRef<[String]> + Send + Sync>(&self, path: P) -> Result<Vec<u8>, ReadError> {
     let path = path.as_ref();
     let path = self.root_dir.as_ref().into_iter().chain(path.iter()).cloned();
-    let mut archive = tar::Archive::new(self.archive.clone());
 
-    let entries = archive
-      .entries_with_seek()
-      .map_err(|e| ReadError::Other(e.to_string()))?;
+    let entries = self.entries.iter();
     for e in entries {
-      let mut e = e.map_err(|e| ReadError::Other(e.to_string()))?;
       let p = e.path().map_err(|e| ReadError::Other(e.to_string()))?;
       let is_wanted_entry = p
         .eq_utf8_segments(path.clone())
@@ -100,7 +119,7 @@ impl ReadFsx<[String]> for Tar {
           return Err(ReadError::NotFile);
         }
         let mut body: Vec<u8> = Vec::new();
-        e.read_to_end(&mut body).map_err(|e| ReadError::Other(e.to_string()))?;
+        // e.read_to_end(&mut body).map_err(|e| ReadError::Other(e.to_string()))?;
         return Ok(body);
       }
     }
@@ -110,13 +129,9 @@ impl ReadFsx<[String]> for Tar {
   async fn read_file<P: AsRef<[String]> + Send + Sync>(&self, path: P) -> Result<FsxFile, ReadError> {
     let path = path.as_ref();
     let path = self.root_dir.as_ref().into_iter().chain(path.iter()).cloned();
-    let mut archive = tar::Archive::new(self.archive.clone());
 
-    let entries = archive
-      .entries_with_seek()
-      .map_err(|e| ReadError::Other(e.to_string()))?;
+    let entries = self.entries.iter();
     for e in entries {
-      let mut e = e.map_err(|e| ReadError::Other(e.to_string()))?;
       let p = e.path().map_err(|e| ReadError::Other(e.to_string()))?;
       let is_wanted_entry = p
         .eq_utf8_segments(path.clone())
@@ -128,7 +143,7 @@ impl ReadFsx<[String]> for Tar {
         let mut body: Vec<u8> = Vec::new();
         let header = e.header();
         let linux_file_mode = header.mode().map_err(|e| ReadError::Other(e.to_string()))?;
-        e.read_to_end(&mut body).map_err(|e| ReadError::Other(e.to_string()))?;
+        // e.read_to_end(&mut body).map_err(|e| ReadError::Other(e.to_string()))?;
         return Ok(FsxFile {
           data: body,
           linux_mode: Some(linux_file_mode),
@@ -141,13 +156,9 @@ impl ReadFsx<[String]> for Tar {
   async fn read_link<P: AsRef<[String]> + Send + Sync>(&self, path: P) -> Result<Self::PathBuf, ReadLinkError> {
     let path = path.as_ref();
     let path = self.root_dir.as_ref().into_iter().chain(path.iter()).cloned();
-    let mut archive = tar::Archive::new(self.archive.clone());
 
-    let entries = archive
-      .entries_with_seek()
-      .map_err(|e| ReadLinkError::Other(e.to_string()))?;
+    let entries = self.entries.iter();
     for e in entries {
-      let e = e.map_err(|e| ReadLinkError::Other(e.to_string()))?;
       let p = e.path().map_err(|e| ReadLinkError::Other(e.to_string()))?;
       let is_wanted_entry = p
         .eq_utf8_segments(path.clone())
@@ -178,21 +189,18 @@ impl ReadFsx<[String]> for Tar {
     let base_path = path.as_ref();
     let path = self.root_dir.as_ref().into_iter().chain(base_path.iter()).cloned();
     let is_empty_path = path.clone().next().is_none();
-    let mut archive = tar::Archive::new(self.archive.clone());
+
+    let entries = self.entries.iter();
 
     let mut result: Vec<SimpleDirEntry<Self::PathBuf>> = Vec::new();
     // A directory is found if an entry with the directory name is found
     // An exception is if the root is the empty path
     let mut found_self = is_empty_path;
 
-    let entries = archive
-      .entries_with_seek()
-      .map_err(|e| ReadDirError::Other(e.to_string()))?;
     // Directories can be explicit or implicit.
     // Implicit directories are created whenever a file entry is found while the directory itself is missing.
     let mut directories = BTreeSet::new();
     'entries: for e in entries {
-      let e = e.map_err(|e| ReadDirError::Other(e.to_string()))?;
       let entry_path = e.path().map_err(|e| ReadDirError::Other(e.to_string()))?;
       let mut entry_components = entry_path.components().map(|c| match c {
         Component::Normal(c) => c.to_str().ok_or(ComponentError::Utf8),
@@ -288,5 +296,36 @@ impl ReadFsx<[String]> for Tar {
       return Err(ReadDirError::NotFound);
     }
     Ok(result)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::collections::BTreeSet;
+  use crate::{FsxDirEntry};
+  use super::*;
+
+  async fn list_files<T: ReadFsx<[String]>>(tree: &T) -> Vec<String> {
+    let mut stack: Vec<T::DirEntry> = tree.read_dir([]).await.unwrap();
+    let mut paths: BTreeSet<String> = BTreeSet::new();
+
+    while let Some(entry) = stack.pop() {
+      let path: &[String] = entry.path().as_ref();
+      let is_fresh = paths.insert(path.join("/"));
+      if !is_fresh {
+        continue;
+      }
+    }
+
+    Vec::from_iter(paths.into_iter())
+  }
+
+  #[tokio::test]
+  async fn read_tgz() {
+    // archive created with `tar -czvf archive.tar.gz archive`
+    let bytes = include_bytes!("../../../llvm-20.1.8.src.tar");
+    let tree = Tar::new(bytes.to_vec()).unwrap();
+    let files = list_files(&tree).await;
+    assert_eq!(files.len(), 100);
   }
 }

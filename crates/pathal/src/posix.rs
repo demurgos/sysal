@@ -1,8 +1,15 @@
-//! Path abstraction layer
+//! POSIX path model implementation
 
-pub mod posix;
-
+use std::ffi::{CStr, CString};
 use std::path::PathBuf;
+
+pub struct PosixPathBuf {
+  inner: CString,
+}
+
+pub struct PosixPath {
+  inner: CStr
+}
 
 pub trait PathModel {
   type Buf;
@@ -20,5 +27,5 @@ pub enum AnyCommand<TyModel: PathModel> {
 }
 
 pub struct AnyPath<TyModel: PathModel> {
-  commands: Vec<AnyCommand<TyModel>>,
+  commands: Vec<AnyCommand<TyModel>>
 }

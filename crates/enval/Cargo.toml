@@ -8,8 +8,9 @@ description = "Environment variable abstraction layer"
 
 [dependencies]
 thiserror = { workspace = true }
+num_threads = { workspace = true, optional = true }
 
 [features]
 default = []
 # Enable integration with the standard library.
-std = []
+std = ["dep:num_threads"]

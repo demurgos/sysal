@@ -5,6 +5,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 
 pub mod tar;
+mod btree;
 // pub mod tar_gz;
 // pub mod tar_xz;
 

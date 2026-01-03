@@ -1,46 +1,10 @@
 //! Environment variable abstraction layer
 
-#[derive(Debug, thiserror::Error)]
-pub enum GetError {
-  #[error("environment variable not found for the provided key")]
-  NotFound,
-}
+// todo: abstract the following Windows 32 APIs:
+//       _environ _putenv _putenv_s _searchenv _searchenv_s _dupenv_s _wputenv
+//       _wputenv_s _wsearchenv getenv getenv_s putenv _wdupenv_s _wenviron
+//       _wgetenv _wgetenv_s _wsearchenv_s tzset
 
-pub trait EnvRead<K> {
-  type Value;
-
-  fn get(&self, key: K) -> Result<Self::Value, GetError>;
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SetError<Inner> {
-  #[error(transparent)]
-  Other(Inner),
-}
-
-pub trait EnvWrite<K, V> {
-  type SetError;
-
-  fn set(&self, key: K, value: V) -> Result<(), SetError<Self::SetError>>;
-}
-
-pub struct FailEnv;
-
-impl EnvRead<&str> for FailEnv {
-  type Value = String;
-
-  fn get(&self, _key: &str) -> Result<Self::Value, GetError> {
-    Err(GetError::NotFound)
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn fail_env() {
-    let res = FailEnv.get("test");
-    assert!(res.is_err());
-  }
-}
+pub mod api;
+pub mod backend;
+pub mod mode;

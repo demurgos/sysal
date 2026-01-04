@@ -116,6 +116,7 @@ dependencies = [
  "flate2",
  "itertools",
  "lzma-rs",
+ "pathal",
  "regex",
  "serde",
  "tar",

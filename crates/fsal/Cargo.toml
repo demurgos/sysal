@@ -12,6 +12,7 @@ display_full_error = { workspace = true, features = ["alloc"] }
 flate2 = { workspace = true, features = ["rust_backend"] }
 itertools = { workspace = true }
 lzma-rs = { workspace = true }
+pathal = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true, features = ["derive", "std"] }
 tar = { workspace = true }

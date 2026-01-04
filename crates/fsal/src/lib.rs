@@ -6,6 +6,9 @@ use std::path::{Component, Path, PathBuf};
 
 pub mod tar;
 mod btree;
+mod slice;
+mod std;
+mod api;
 // pub mod tar_gz;
 // pub mod tar_xz;
 
